@@ -124,7 +124,11 @@ def train(model, dataloader, dataloader_val, B, N=10, K=5, Q=5, na_rate=0, train
             model.train()
             # if acc > best_acc:
             #    print('Best checkpoint')
-            torch.save({'state_dict': model.state_dict()}, "trained_models/gnn.pt")
+            if os.path.exists("trained_models"):
+                torch.save({'state_dict': model.state_dict()}, "trained_models/gnn.pt")
+            else:
+                os.mkdir("trained_models")
+                torch.save({'state_dict': model.state_dict()}, "trained_models/gnn.pt")
             #    best_acc = acc
             iter_loss = 0.
             iter_loss_dis = 0.

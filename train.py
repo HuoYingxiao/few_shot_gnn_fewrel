@@ -22,8 +22,8 @@ def main():
     test_iter = 10000
     val_step = 3000
     ckpt = ''
-    glove_mat = np.load('./pretrain/glove/glove_mat.npy')
-    glove_word2id = json.load(open('./pretrain/glove/glove_word2id.json'))
+    glove_mat = np.load('./pretrain/glove/glove.6B.50d_mat.npy')
+    glove_word2id = json.load(open('./pretrain/glove/glove.6B.50d_word2id.json'))
 
     sentence_encoder = Encoder(glove_mat, glove_word2id, max_length)
 
