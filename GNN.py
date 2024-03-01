@@ -85,6 +85,8 @@ def train(model, dataloader, dataloader_val, B, N=10, K=5, Q=5, na_rate=0, train
     iter_right_dis = 0.0
     iter_sample = 0.0
 
+    losses = []
+
     for it in range(start_iter, start_iter + train_iter):
         support, query, label = next(dataloader)
         if torch.cuda.is_available():
@@ -113,6 +115,7 @@ def train(model, dataloader, dataloader_val, B, N=10, K=5, Q=5, na_rate=0, train
         iter_right += right.data.item()
         iter_sample += 1
 
+        losses.append(loss.data.item())
         sys.stdout.write(
             'step: {0:4} | loss: {1:2.6f}, accuracy: {2:3.2f}%'.format(it + 1, iter_loss / iter_sample,
                                                                        100 * iter_right / iter_sample) + '\r')
@@ -137,6 +140,7 @@ def train(model, dataloader, dataloader_val, B, N=10, K=5, Q=5, na_rate=0, train
             iter_sample = 0.
     print("\n####################\n")
     print("Finish training ")
+    return losses
 
 
 def eval(model, dataloader, B, N, K, Q, eval_iter, na_rate=0, ckpt=None):
