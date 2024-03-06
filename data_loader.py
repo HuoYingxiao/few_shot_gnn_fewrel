@@ -40,6 +40,7 @@ class FewRelDataset(data.Dataset):
         support_set = {'word': [], 'pos1': [], 'pos2': [], 'mask': [] }
         query_set = {'word': [], 'pos1': [], 'pos2': [], 'mask': [] }
         query_label = []
+        class_names = []
         Q_na = int(self.na_rate * self.Q)
         na_classes = list(filter(lambda x: x not in target_classes,  
             self.classes))
@@ -63,6 +64,7 @@ class FewRelDataset(data.Dataset):
                 count += 1
 
             query_label += [i] * self.Q
+            class_names.append(class_name)
 
         # NA
         for j in range(Q_na):
@@ -79,7 +81,7 @@ class FewRelDataset(data.Dataset):
             self.__additem__(query_set, word, pos1, pos2, mask)
         query_label += [self.N] * Q_na
 
-        return support_set, query_set, query_label
+        return support_set, query_set, query_label, class_names
     
     def __len__(self):
         return 1000000000
@@ -88,7 +90,7 @@ def collate_fn(data):
     batch_support = {'word': [], 'pos1': [], 'pos2': [], 'mask': []}
     batch_query = {'word': [], 'pos1': [], 'pos2': [], 'mask': []}
     batch_label = []
-    support_sets, query_sets, query_labels = zip(*data)
+    support_sets, query_sets, query_labels, class_names = zip(*data)
     for i in range(len(support_sets)):
         for k in support_sets[i]:
             batch_support[k] += support_sets[i][k]
@@ -100,7 +102,7 @@ def collate_fn(data):
     for k in batch_query:
         batch_query[k] = torch.stack(batch_query[k], 0)
     batch_label = torch.tensor(batch_label)
-    return batch_support, batch_query, batch_label
+    return batch_support, batch_query, batch_label, class_names
 
 def get_loader(name, encoder, N, K, Q, batch_size, 
         num_workers=8, collate_fn=collate_fn, na_rate=0, root='./data'):

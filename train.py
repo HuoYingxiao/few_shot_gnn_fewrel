@@ -40,7 +40,7 @@ def main():
 
     train(model, train_data_loader, val_data_loader, batch_size, N_train, K_shot, Q)
 
-    acc = eval(model, val_data_loader, batch_size, N_eval, K_shot, Q)
+    acc = eval(model, val_data_loader, batch_size, N_eval, K_shot, Q, eval_iter=1000)
     print("RESULT: %.2f" % (acc * 100))
 
 

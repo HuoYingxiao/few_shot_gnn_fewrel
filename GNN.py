@@ -1,5 +1,8 @@
 import os
 import sys
+
+import numpy as np
+
 import gnn_iclr
 import torch
 import torch.nn as nn
@@ -68,6 +71,18 @@ class GNN(nn.Module):
         '''
         return torch.mean((pred.view(-1) == label.view(-1)).type(torch.FloatTensor))
 
+    def load_model(self, ckpt):
+        '''
+        ckpt: Path of the checkpoint
+        return: Checkpoint dict
+        '''
+        if os.path.isfile(ckpt):
+            checkpoint = torch.load(ckpt)
+            print("Successfully loaded checkpoint '%s'" % ckpt)
+            return checkpoint
+        else:
+            raise Exception("No checkpoint found at '%s'" % ckpt)
+
 
 def train(model, dataloader, dataloader_val, B, N=10, K=5, Q=5, na_rate=0, train_iter=30000, val_iter=1000,
           val_step=3000,
@@ -88,7 +103,7 @@ def train(model, dataloader, dataloader_val, B, N=10, K=5, Q=5, na_rate=0, train
     losses = []
 
     for it in range(start_iter, start_iter + train_iter):
-        support, query, label = next(dataloader)
+        support, query, label, _ = next(dataloader)
         if torch.cuda.is_available():
             for k in support:
                 support[k] = support[k].cuda()
@@ -156,9 +171,13 @@ def eval(model, dataloader, B, N, K, Q, eval_iter, na_rate=0, ckpt=None):
                 own_state[name].copy_(param)
     iter_right = 0.0
     iter_sample = 0.0
+    all_classes = ['P177', 'P364', 'P2094', 'P361', 'P641', 'P59', 'P413', 'P206', 'P412', 'P155', 'P26', 'P410', 'P25',
+                   'P463', 'P40', 'P921']
+    confusion_mat = np.zeros([16, 16])
+
     with torch.no_grad():
         for it in range(eval_iter):
-            support, query, label = next(dataloader)
+            support, query, label, class_names = next(dataloader)
             if torch.cuda.is_available():
                 for k in support:
                     support[k] = support[k].cuda()
@@ -166,6 +185,15 @@ def eval(model, dataloader, B, N, K, Q, eval_iter, na_rate=0, ckpt=None):
                     query[k] = query[k].cuda()
                 label = label.cuda()
             logits, pred = model(support, query, N, K, Q * N + Q * na_rate)
+
+            count = 0
+            for i in range(len(label.tolist())):
+                p = pred.tolist()[i]
+                l = label.tolist()[i]
+                # print(int(count/25))
+                classes = class_names[int(count / 25)]
+                count += 1
+                confusion_mat[all_classes.index(classes[l])][all_classes.index(classes[p])] += 1
 
             right = model.accuracy(pred, label)
             iter_right += right.data.item()
@@ -175,4 +203,19 @@ def eval(model, dataloader, B, N, K, Q, eval_iter, na_rate=0, ckpt=None):
                 '[EVAL] step: {0:4} | accuracy: {1:3.2f}%'.format(it + 1, 100 * iter_right / iter_sample) + '\r')
             sys.stdout.flush()
         print("")
+        print("confusion matrix: ")
+        for row in confusion_mat:
+            for element in row:
+                print(f"{int(element)}", end=" ")  # Adjust 4d for different spacing
+            print()
+        # print(confusion_mat)
+
+        precision = np.diag(confusion_mat) / np.sum(confusion_mat, axis=0)
+        recall = np.diag(confusion_mat)/ np.sum(confusion_mat, axis=1)
+        f1_scores = 2 * (precision * recall) / (precision + recall)
+
+        print("")
+        print(f"Precision: {precision}")
+        print(f"Revall: {recall}")
+        print(f"f1-score: {f1_scores}")
     return iter_right / iter_sample
